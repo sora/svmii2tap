@@ -1,5 +1,5 @@
-miitap
-------
+svMII2tap
+---------
 
 svMII2tap is a virtual network device for Systemverilog testbench for FPGA-based network devices such as NIC and Switch/Routers.
 
@@ -13,16 +13,16 @@ svMII2tap is a virtual network device for Systemverilog testbench for FPGA-based
 	         +----|--^----+             
 	              |  |
 	         +----V--|----+
-	+--------| TAP device |--------+  
+	+--------|   Socket   |--------+  
 	|        +------------+        |  
 	|                              |  
-	|        Ethernet device       |  
+	|          TAP device          |
 	|                              |  
 	|        +------------+        |  
 	+--------| Named PIPE |--------+  
 	         +----|--^----+          
 	              |  |
-	       stdout |  | stdin
+	        stdin |  | stdout
 	              |  |
 	         +----V--|----+          
 	+--------|   DPI-C    |--------+
@@ -33,7 +33,7 @@ svMII2tap is a virtual network device for Systemverilog testbench for FPGA-based
 	|        +------------+        |
 	|    +---|Ethernet MII|---+    |
 	|    |   +------------+   |    |
-	|    |         DUT        |    |
+	|    |        DUT         |    |
 	|    +--------------------+    |
 	+------------------------------+
 ```
