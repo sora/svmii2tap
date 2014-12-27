@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 		int ret;  
 
 		FD_ZERO(&fdset);  
-		FD_SET(STDIN_FILENO, &fdset);  
+		FD_SET(pipe_fd, &fdset);  
 		FD_SET(tap_fd, &fdset);  
 
 		ret = select(tap_fd + 1, &fdset, NULL, NULL, NULL);  
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 		}  
 
 		// pktin
-		if (FD_ISSET(STDIN_FILENO, &fdset)) {  
+		if (FD_ISSET(pipe_fd, &fdset)) {  
 			cnt = read(pipe_fd, buf, sizeof(buf));  
 			if (ret < 0) {
 				perror("read");  
