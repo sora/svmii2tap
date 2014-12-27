@@ -1,12 +1,11 @@
+TARGET = tapdev
+
 CC = gcc
 CFLAGS = -Wall -O
-
-TARGET = tapdev
-OBJECTS = tapdev.o
 
 all: $(TARGET)
 
 clean:
-	rm -f  $(TARGET) $(OBJECTS)
+	rm -f  *.o $(TARGET)
 
 .PHONY: clean
