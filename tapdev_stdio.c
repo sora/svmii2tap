@@ -7,6 +7,7 @@
 #include <sys/socket.h>  
 #include <sys/types.h>  
 #include <sys/socket.h>  
+#include <sys/stat.h>  
   
 #include <netinet/in.h>  
 #include <netinet/ip6.h>  
@@ -18,8 +19,11 @@
 #include <linux/if_tun.h>  
 #include <linux/if_ether.h>
 
-#define BUF_MAX_ASCII    160000
+
+#define BUF_MAX_ASCII    16000
 #define BUF_MAX          9400
+
+#define PIPE_NAME        "/tmp/svmii2tap.pipe"
 
 /*
  * tap_init
@@ -56,10 +60,10 @@ int tap_init(char *dev)
 /*
  * pktout
  */
-inline int pktout(const unsigned char *pkt, unsigned length)  
+inline int pktout(int pipe_fd, const unsigned char *pkt, unsigned length)  
 {  
 	int i, olen;  
-	unsigned char obuf[BUF_MAX_ASCII];
+	char obuf[BUF_MAX_ASCII];
 	  
 	sprintf(obuf, "%02X%02X%02X%02X%02X%02X %02X%02X%02X%02X%02X%02X %02X%02X",
 		pkt[0x00], pkt[0x01], pkt[0x02], pkt[0x03], pkt[0x04], pkt[0x05],   // dst mac address
@@ -72,14 +76,14 @@ inline int pktout(const unsigned char *pkt, unsigned length)
 	}
 	strcat(obuf, "\n");
 
-	return write(1, obuf, strlen(obuf));
+	return write(pipe_fd, obuf, strlen(obuf));
 }  
 
 
 /*
  * pktin
  */
-inline int pktin(int fd, int cnt, unsigned char *buf)
+inline int pktin(int tap_fd, unsigned char *buf, int cnt)
 {
 	unsigned char *p, *cr;
 	int i, frame_len, pos;
@@ -94,12 +98,12 @@ inline int pktin(int fd, int cnt, unsigned char *buf)
 	for (p = buf; p < cr && frame_len < BUF_MAX; ++p) {
 		// skip space
 		if (*p == ' ') {
-			   continue;
+			continue;
 		}
 
 		// conver to upper char
 		if (*p >= 'a' && *p <= 'z') {
-			   *p -= 0x20;
+			*p -= 0x20;
 		}
 
 		// is hexdigit?
@@ -128,7 +132,7 @@ inline int pktin(int fd, int cnt, unsigned char *buf)
 	if (frame_len == 0)
 		exit(1);
 
-	return write(fd, tmp_pkt, frame_len);  
+	return write(tap_fd, tmp_pkt, frame_len);  
 }
   
 
@@ -136,13 +140,14 @@ inline int pktin(int fd, int cnt, unsigned char *buf)
  * main
  */
 int main(int argc, char **argv)  
-{  
-	char dev[IFNAMSIZ];  
+{
+	char dev[IFNAMSIZ];
 	unsigned char buf[BUF_MAX_ASCII*2];
-	int fd, fd4, cnt;
-	fd_set fdset;  
-	struct ifreq ifr;  
-	struct in6_rtmsg rt;  
+	int tap_fd, fd4, cnt, pipe_fd, ret;
+	fd_set fdset;
+	struct ifreq ifr;
+	struct in6_rtmsg rt;
+	struct stat st;
   
 	if (argc < 2) {  
 		fprintf(stderr, "Usage:%s {devicename}\n", argv[0]);  
@@ -150,8 +155,24 @@ int main(int argc, char **argv)
 	}  
 	strcpy(dev, argv[1]);  
 
-	fd = tap_init(dev);  
-	if (fd < 0) {  
+	tap_fd = tap_init(dev);  
+	if (tap_fd < 0) {  
+		perror("tap_fd");
+		return 1;  
+	}  
+
+	// wait for the start of the testbench process
+	for (;;) {
+		ret = stat(PIPE_NAME, &st);
+		if (ret == 0) {
+			break;
+		}
+		sleep(1);
+	}
+
+	pipe_fd = open(PIPE_NAME, O_RDWR);
+	if (pipe_fd < 0) {  
+		perror("pipe_fd");
 		return 1;  
 	}  
 
@@ -185,26 +206,25 @@ int main(int argc, char **argv)
 		  
 	while(1) {  
 		int ret;  
-		unsigned char hdr_offset;
 
 		FD_ZERO(&fdset);  
 		FD_SET(STDIN_FILENO, &fdset);  
-		FD_SET(fd, &fdset);  
+		FD_SET(tap_fd, &fdset);  
 
-		ret = select(fd + 1, &fdset, NULL, NULL, NULL);  
+		ret = select(tap_fd + 1, &fdset, NULL, NULL, NULL);  
 		if (ret < 0) {  
 			perror("select");  
 			return 1;  
 		}  
 
 		// pktout
-		if (FD_ISSET(fd, &fdset)) {
-			ret = read(fd, buf, sizeof(buf));  
+		if (FD_ISSET(tap_fd, &fdset)) {
+			ret = read(tap_fd, buf, sizeof(buf));  
 			if (ret < 0) {
 				perror("read");  
 			}
 
-			ret = pktout(buf, ret);  
+			ret = pktout(pipe_fd, buf, ret);  
 			if (ret < 0) {
 				perror("pktout()");
 			}
@@ -212,18 +232,19 @@ int main(int argc, char **argv)
 
 		// pktin
 		if (FD_ISSET(STDIN_FILENO, &fdset)) {  
-			cnt = read(STDIN_FILENO, buf, sizeof(buf));  
+			cnt = read(pipe_fd, buf, sizeof(buf));  
 			if (ret < 0) {
 				perror("read");  
 			}
 
-			ret = pktin(fd, cnt, buf);
+			ret = pktin(tap_fd, buf, cnt);
 			if (ret < 0) {
 				perror("pktin()");
 			}
 		}  
 	}  
-	close(fd); 
+	close(tap_fd); 
+	close(pipe_fd);
 
 	return 0;  
 }
