@@ -1,5 +1,12 @@
-default: tapdev_stdio
-	gcc -Wall -O -o tapdev_stdio tapdev_stdio.c
+CC = gcc
+CFLAGS = -Wall -O
+
+TARGET = tapdev
+OBJECTS = tapdev.o
+
+all: $(TARGET)
 
 clean:
-	rm -f *.o tapdev_stdio
+	rm -f  $(TARGET) $(OBJECTS)
+
+.PHONY: clean
