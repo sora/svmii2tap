@@ -41,5 +41,5 @@ tap:
 .PHONY: clean
 clean:
 	rm -f  *.o $(TARGET_TAP)
-	rm -f  *.so transcript
+	rm -f  *.so transcript *.vcd
 	rm -rf $(BUILD_DIR)
