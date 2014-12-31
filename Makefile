@@ -33,7 +33,7 @@ dpic: simlog
 	$(CC) -m32 -shared -fPIC -o $(TARGET_TB).so $(TARGET_TB).o
 
 vsim:
-	$(VSIM) -c -sv_lib $(TARGET_TB) -do "vcd file wave.vcd; run -all; quit" $(TARGET_TB)
+	$(VSIM) -c -sv_lib $(TARGET_TB) -do "vcd file wave.vcd; run -all; vcd flush; quit" $(TARGET_TB)
 
 tap:
 	sudo $(TARGET_TAP) pipe0
