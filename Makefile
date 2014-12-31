@@ -6,25 +6,34 @@ BUILD_DIR = work
 CC = gcc
 CFLAGS = -Wall -O
 
-all: buildtap buildsim
+VLIB = vlib
+VLOG = vlog
+VSIM = vsim
+LINT = vlog -lint
 
+all: buildtap buildsim
 buildtap: tapdev
-buildsim: vlib vlog dpic
+buildsim: simlib simlog dpic
+
 dev: tap
 sim: vsim
+lint: simlint
 
-vlib:
-	vlib $(BUILD_DIR)
+simlib:
+	$(VLIB) $(BUILD_DIR)
 
-vlog:
-	vlog $(TARGET_TB).sv $(TARGET_DUT)
+simlog: simlib
+	$(VLOG) $(TARGET_TB).sv $(TARGET_DUT)
 
-dpic:
+simlint: simlib
+	$(LINT) $(TARGET_TB).sv $(TARGET_DUT)
+
+dpic: simlog
 	$(CC) -m32 -c -I$(MODELSIM_HOME)/include $(TARGET_TB).c
 	$(CC) -m32 -shared -fPIC -o $(TARGET_TB).so $(TARGET_TB).o
 
 vsim:
-	vsim -c -sv_lib $(TARGET_TB) -do "run -all; quit" $(TARGET_TB)
+	$(VSIM) -c -sv_lib $(TARGET_TB) -do "run -all; quit" $(TARGET_TB)
 
 tap:
 	sudo $(TARGET_TAP) pipe0
