@@ -3,7 +3,7 @@
 module hub (
 		input wire       sys_rst
 	,	input wire       gmii_gtx_clk
-	,	input wire       fifo_en
+	,	input wire       fifo_dv
 	,	input wire [7:0] fifo_din
 	,	output reg       gmii_en
 	,	output reg [7:0] gmii_dout
@@ -15,9 +15,9 @@ always @(posedge gmii_gtx_clk) begin
 		gmii_dout <= 8'b0;
 	end else begin
 		gmii_en <= 1'b0;
-		if (fifo_en) begin
-			gmii_en   <= 1'b1;
-			gmii_dout <= fifo_din;
+		gmii_dout <= fifo_din;
+		if (fifo_dv) begin
+			gmii_en <= 1'b1;
 		end
 	end
 end
