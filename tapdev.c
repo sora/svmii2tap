@@ -1,22 +1,22 @@
-#include <stdio.h>  
-#include <stdlib.h>  
+#include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
-#include <unistd.h>  
-#include <string.h>  
-#include <sys/ioctl.h>  
-#include <sys/socket.h>  
-#include <sys/types.h>  
-#include <sys/socket.h>  
-#include <sys/stat.h>  
-  
-#include <netinet/in.h>  
-#include <netinet/ip6.h>  
+#include <unistd.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+
+#include <netinet/in.h>
+#include <netinet/ip6.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <net/route.h>
-  
-#include <linux/if.h>  
-#include <linux/if_tun.h>  
+
+#include <linux/if.h>
+#include <linux/if_tun.h>
 #include <linux/if_ether.h>
 
 
@@ -28,43 +28,43 @@
 /*
  * tap_init
  */
-int tap_init(char *dev)  
-{  
-	struct ifreq ifr;  
-	int fd, err;  
-  
+int tap_init(char *dev)
+{
+	struct ifreq ifr;
+	int fd, err;
+
 	fd = open("/dev/net/tun", O_RDWR);
 	if (fd < 0) {
-		perror("open");  
-		return -1;  
-	}  
-  
-	memset(&ifr, 0, sizeof(ifr));  
-	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;  
-	if (*dev) { 
-		strncpy(ifr.ifr_name, dev, IFNAMSIZ);  
+		perror("open");
+		return -1;
 	}
-	  
+
+	memset(&ifr, 0, sizeof(ifr));
+	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+	if (*dev) {
+		strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+	}
+
 	err = ioctl(fd, TUNSETIFF, (void *)&ifr);
 	if (err < 0) {
-		perror("TUNSETIFF");  
-		close(fd);  
-		return err;  
-	}  
-	strcpy(dev, ifr.ifr_name);  
+		perror("TUNSETIFF");
+		close(fd);
+		return err;
+	}
+	strcpy(dev, ifr.ifr_name);
 
-	return fd;  
-}  
+	return fd;
+}
 
-  
+
 /*
  * pktout
  */
-inline int pktout(int pipe_fd, const unsigned char *pkt, unsigned length)  
-{  
-	int i, olen;  
+inline int pktout(int pipe_fd, const unsigned char *pkt, unsigned length)
+{
+	int i, olen;
 	char obuf[BUF_MAX_ASCII];
-	  
+
 	sprintf(obuf, "%02X%02X%02X%02X%02X%02X %02X%02X%02X%02X%02X%02X %02X%02X",
 		pkt[0x00], pkt[0x01], pkt[0x02], pkt[0x03], pkt[0x04], pkt[0x05],   // dst mac address
 		pkt[0x06], pkt[0x07], pkt[0x08], pkt[0x09], pkt[0x0a], pkt[0x0b],   // src mac address
@@ -77,7 +77,7 @@ inline int pktout(int pipe_fd, const unsigned char *pkt, unsigned length)
 	strcat(obuf, "\n");
 
 	return write(pipe_fd, obuf, strlen(obuf));
-}  
+}
 
 
 /*
@@ -132,14 +132,14 @@ inline int pktin(int tap_fd, unsigned char *buf, int cnt)
 	if (frame_len == 0)
 		exit(1);
 
-	return write(tap_fd, tmp_pkt, frame_len);  
+	return write(tap_fd, tmp_pkt, frame_len);
 }
-  
+
 
 /*
  * main
  */
-int main(int argc, char **argv)  
+int main(int argc, char **argv)
 {
 	char dev[IFNAMSIZ];
 	unsigned char buf[BUF_MAX_ASCII*2];
@@ -148,18 +148,18 @@ int main(int argc, char **argv)
 	struct ifreq ifr;
 	struct in6_rtmsg rt;
 	struct stat st;
-  
-	if (argc < 2) {  
-		fprintf(stderr, "Usage:%s {devicename}\n", argv[0]);  
-		return 1;  
-	}  
-	strcpy(dev, argv[1]);  
 
-	tap_fd = tap_init(dev);  
-	if (tap_fd < 0) {  
+	if (argc < 2) {
+		fprintf(stderr, "Usage:%s {devicename}\n", argv[0]);
+		return 1;
+	}
+	strcpy(dev, argv[1]);
+
+	tap_fd = tap_init(dev);
+	if (tap_fd < 0) {
 		perror("tap_fd");
-		return 1;  
-	}  
+		return 1;
+	}
 
 	// wait for the start of the testbench process
 	for (;;) {
@@ -171,81 +171,81 @@ int main(int argc, char **argv)
 	}
 
 	pipe_fd = open(PIPE_NAME, O_RDWR);
-	if (pipe_fd < 0) {  
+	if (pipe_fd < 0) {
 		perror("pipe_fd");
-		return 1;  
-	}  
+		return 1;
+	}
 
-	/* ifup */  
-	strncpy(ifr.ifr_name, dev, IFNAMSIZ);  
-	fd4 = socket(PF_INET, SOCK_DGRAM, 0);  
-	if (fd4 < 0) {  
-		return 1;  
-	}  
+	/* ifup */
+	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+	fd4 = socket(PF_INET, SOCK_DGRAM, 0);
+	if (fd4 < 0) {
+		return 1;
+	}
 
-	if (ioctl(fd4, SIOCGIFFLAGS, &ifr) != 0) {  
-		perror("SIOCGIFFLAGS");  
-		return 1;  
-	}  
+	if (ioctl(fd4, SIOCGIFFLAGS, &ifr) != 0) {
+		perror("SIOCGIFFLAGS");
+		return 1;
+	}
 
-	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;  
-	if (ioctl(fd4, SIOCSIFFLAGS, &ifr) != 0) {  
-		perror("SIOCSIFFLAGS");  
-		return 1;  
-	}  
-	  
-	memset(&rt, 0, sizeof(rt));  
+	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+	if (ioctl(fd4, SIOCSIFFLAGS, &ifr) != 0) {
+		perror("SIOCSIFFLAGS");
+		return 1;
+	}
 
-	/* get ifindex */  
-	memset(&ifr, 0, sizeof(ifr));  
-	strncpy(ifr.ifr_name, dev, IFNAMSIZ);  
-	if (ioctl(fd4, SIOGIFINDEX, &ifr) <0) {  
-		perror("SIOGIFINDEX");  
-		return 1;  
-	}  
-		  
-	while(1) {  
-		int ret;  
+	memset(&rt, 0, sizeof(rt));
 
-		FD_ZERO(&fdset);  
-		FD_SET(pipe_fd, &fdset);  
-		FD_SET(tap_fd, &fdset);  
+	/* get ifindex */
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+	if (ioctl(fd4, SIOGIFINDEX, &ifr) <0) {
+		perror("SIOGIFINDEX");
+		return 1;
+	}
 
-		ret = select(tap_fd + 1, &fdset, NULL, NULL, NULL);  
-		if (ret < 0) {  
-			perror("select");  
-			return 1;  
-		}  
+	while(1) {
+		int ret;
+
+		FD_ZERO(&fdset);
+		FD_SET(pipe_fd, &fdset);
+		FD_SET(tap_fd, &fdset);
+
+		ret = select(tap_fd + 1, &fdset, NULL, NULL, NULL);
+		if (ret < 0) {
+			perror("select");
+			return 1;
+		}
 
 		// pktout
 		if (FD_ISSET(tap_fd, &fdset)) {
-			ret = read(tap_fd, buf, sizeof(buf));  
+			ret = read(tap_fd, buf, sizeof(buf));
 			if (ret < 0) {
-				perror("read");  
+				perror("read");
 			}
 
-			ret = pktout(pipe_fd, buf, ret);  
+			ret = pktout(pipe_fd, buf, ret);
 			if (ret < 0) {
 				perror("pktout()");
 			}
-		}  
+		}
 
 		// pktin
-		if (FD_ISSET(pipe_fd, &fdset)) {  
-			cnt = read(pipe_fd, buf, sizeof(buf));  
+		if (FD_ISSET(pipe_fd, &fdset)) {
+			cnt = read(pipe_fd, buf, sizeof(buf));
 			if (ret < 0) {
-				perror("read");  
+				perror("read");
 			}
 
 			ret = pktin(tap_fd, buf, cnt);
 			if (ret < 0) {
 				perror("pktin()");
 			}
-		}  
-	}  
-	close(tap_fd); 
+		}
+	}
+	close(tap_fd);
 	close(pipe_fd);
 
-	return 0;  
+	return 0;
 }
 

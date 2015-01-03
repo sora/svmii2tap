@@ -48,7 +48,9 @@ Install
 $ git clone https://github.com/sora/svmii2tap
 $ cd svmii2tap
 $ make
-$ ./svmii2tap phy0
+$ sudo ./tapdev eth0 &
+$ make sim
+$ gtkwave wave.vcd
 ```
 
 Requirements
@@ -57,3 +59,11 @@ Requirements
 * TUN/TAP
 * Named PIPE
 * Modelsim ASE (DPI-C)
+
+Todo
+----
+
+* TX
+* XGMII (10G)
+* Ethernet FCS
+
