@@ -1,34 +1,110 @@
 #include <stdio.h>  
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <sys/select.h>
+
 
 #define BUF_MAX_ASCII    16000
 #define BUF_MAX          9400
 
-#define PIPE_NAME        "/tmp/svmii2tap.pipe"
+#define TXPIPE_NAME      "/tmp/tx0.pipe"
+#define RXPIPE_NAME      "/tmp/rx0.pipe"
 
-extern void pipe_init(void);
-extern void pipe_release(void);
-//extern int gmii2tap();
-//extern int tap2gmii();
 
-/*
- * pipe_init
- */
-void pipe_init()
+extern void gmii_write(char);
+extern void nop(void);
+
+int pipe_fd;
+
+int pipe_init(void)
 {
-	printf("mkfifo()\n");
-	mkfifo(PIPE_NAME, 0666);
+	int ret = 0;
+
+	unlink(RXPIPE_NAME);
+	mkfifo(RXPIPE_NAME, 0666);
+
+	pipe_fd = open(RXPIPE_NAME, O_RDONLY | O_NONBLOCK);
+	if (pipe_fd < 0) {
+		perror("open");
+		ret = -1;
+	}
+
+	return ret;
 }
 
-/*
- * pipe_release
- */
-void pipe_release()
+void pipe_release(void)
 {
-	printf("unlink()\n");
-	unlink(PIPE_NAME);
+	close(pipe_fd);
+	unlink(RXPIPE_NAME);
+}
+
+int tap2gmii(int *ret)
+{
+	unsigned char buf[BUF_MAX_ASCII*3];
+	unsigned char *p, *cr;
+	int cnt, i, frame_len, pos;
+	char tmp_pkt[BUF_MAX];
+
+	cnt = read(pipe_fd, buf, sizeof(buf));
+	if (cnt < 0 && errno != EAGAIN) {
+		perror("read");
+		*ret = -1;
+		goto out;
+	} else if (cnt < 1) {
+		*ret = 0;
+		goto out;
+	}
+
+	for (i = 0, cr = buf; *cr != '\n' && i < cnt; ++cr, ++i);
+
+	frame_len = 0;
+	pos = 0;
+	for (p = buf; p < cr && frame_len < BUF_MAX; ++p) {
+		// skip space
+		if (*p == ' ') {
+			continue;
+		}
+
+		// conver to upper char
+		if (*p >= 'a' && *p <= 'z') {
+			*p -= 0x20;
+		}
+
+		// is hexdigit?
+		if (*p >= '0' && *p <= '9') {
+			if (pos == 0) {
+				tmp_pkt[frame_len] = (*p - '0') << 4;
+				pos = 1;
+			} else {
+				tmp_pkt[frame_len] |= (*p - '0');
+				++frame_len;
+				pos = 0;
+			}
+		} else if (*p >= 'A' && *p <= 'Z') {
+			if (pos == 0) {
+				tmp_pkt[frame_len] = (*p - 'A' + 10) << 4;
+				pos = 1;
+			} else {
+				tmp_pkt[frame_len] |= (*p - 'A' + 10);
+				++frame_len;
+				pos = 0;
+			}
+		}
+	}
+
+	gmii_write(0);  // gmii_en
+	for (i = 0; i < frame_len; i++) {
+		gmii_write(tmp_pkt[i]);
+	}
+	nop();
+
+	*ret = 1;
+
+out:
+	return 0;
 }
 
 #if 0
