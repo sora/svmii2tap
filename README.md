@@ -56,9 +56,11 @@ $ gtkwave wave.vcd
 Requirements
 ------------
 
-* TUN/TAP
-* Named PIPE
+* Linux
+	- TUN/TAP
+	- Named PIPE
 * Modelsim ASE (DPI-C)
+* GTKWave
 
 Todo
 ----
