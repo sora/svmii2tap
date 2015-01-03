@@ -3,6 +3,8 @@ TARGET_TB = tb
 TARGET_DUT = dut/hub.v
 BUILD_DIR = work
 
+MODELSIM_HOME = /opt/altera/14.1/modelsim_ase
+
 CC = gcc
 CFLAGS = -Wall -O
 
@@ -23,17 +25,17 @@ simlib:
 	$(VLIB) $(BUILD_DIR)
 
 simlog: simlib
-	$(VLOG) $(TARGET_TB).sv $(TARGET_DUT)
+	$(VLOG) -sv $(TARGET_TB).sv $(TARGET_DUT)
 
 simlint: simlib
 	$(LINT) $(TARGET_TB).sv $(TARGET_DUT)
 
 dpic: simlog
 	$(CC) -m32 -c -I$(MODELSIM_HOME)/include $(TARGET_TB).c
-	$(CC) -m32 -shared -fPIC -o $(TARGET_TB).so $(TARGET_TB).o
+	$(CC) -m32 -shared -fPIC -o svdpi.so $(TARGET_TB).o
 
 vsim:
-	$(VSIM) -c -sv_lib $(TARGET_TB) -do "vcd file wave.vcd; run -all; vcd flush; quit" $(TARGET_TB)
+	$(VSIM) -c -sv_lib svdpi -do "run -all; quit" $(TARGET_TB)
 
 tap:
 	sudo $(TARGET_TAP) pipe0
