@@ -1,4 +1,4 @@
-#include <stdio.h>  
+#include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,7 +15,8 @@
 
 
 extern void gmii_write(char);
-extern void nop(void);
+extern void gmii_preamble(void);
+extern void gmii_ifg(void);
 
 int pipe_fd;
 
@@ -46,7 +47,7 @@ int tap2gmii(int *ret)
 	unsigned char buf[BUF_MAX_ASCII*3];
 	unsigned char *p, *cr;
 	int cnt, i, frame_len, pos;
-	char tmp_pkt[BUF_MAX];
+	char tmp_pkt[BUF_MAX] = {0};
 
 	cnt = read(pipe_fd, buf, sizeof(buf));
 	if (cnt < 0 && errno != EAGAIN) {
@@ -95,11 +96,15 @@ int tap2gmii(int *ret)
 		}
 	}
 
-	gmii_write(0);  // gmii_en
+	/* ethernet FCS */
+	frame_len += 4;    // zero padding :todo
+
+	/* a packet data to GMII port */
+	gmii_preamble();
 	for (i = 0; i < frame_len; i++) {
 		gmii_write(tmp_pkt[i]);
 	}
-	nop();
+	gmii_ifg();
 
 	*ret = 1;
 
@@ -115,7 +120,7 @@ int gmii2tap(const unsigned char *pkt, unsigned length)
 {
 	int i, olen;
 	char obuf[BUF_MAX_ASCII];
-	  
+
 	sprintf(obuf, "%02X%02X%02X%02X%02X%02X %02X%02X%02X%02X%02X%02X %02X%02X",
 		pkt[0x00], pkt[0x01], pkt[0x02], pkt[0x03], pkt[0x04], pkt[0x05],   // dst mac address
 		pkt[0x06], pkt[0x07], pkt[0x08], pkt[0x09], pkt[0x0a], pkt[0x0b],   // src mac address
@@ -128,7 +133,7 @@ int gmii2tap(const unsigned char *pkt, unsigned length)
 	strcat(obuf, "\n");
 
 	return write(pipe_fd, obuf, strlen(obuf));
-}  
+}
 
 
 /*
@@ -183,7 +188,7 @@ int tap2gmii(unsigned char *buf, int cnt)
 	if (frame_len == 0)
 		exit(1);
 
-	return write(tap_fd, tmp_pkt, frame_len);  
+	return write(tap_fd, tmp_pkt, frame_len);
 }
 #endif
 

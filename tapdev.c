@@ -19,11 +19,11 @@
 #include <linux/if_tun.h>
 #include <linux/if_ether.h>
 
-
 #define BUF_MAX_ASCII    16000
 #define BUF_MAX          9400
 
-#define PIPE_NAME        "/tmp/svmii2tap.pipe"
+#define RXPIPE_NAME      "/tmp/rx0.pipe"
+
 
 /*
  * tap_init
@@ -163,14 +163,14 @@ int main(int argc, char **argv)
 
 	// wait for the start of the testbench process
 	for (;;) {
-		ret = stat(PIPE_NAME, &st);
+		ret = stat(RXPIPE_NAME, &st);
 		if (ret == 0) {
 			break;
 		}
 		sleep(1);
 	}
 
-	pipe_fd = open(PIPE_NAME, O_RDWR);
+	pipe_fd = open(RXPIPE_NAME, O_RDWR);
 	if (pipe_fd < 0) {
 		perror("pipe_fd");
 		return 1;
