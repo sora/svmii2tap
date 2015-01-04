@@ -14,24 +14,25 @@ export "DPI-C" task gmii_write;
 export "DPI-C" task gmii_preamble;
 export "DPI-C" task gmii_ifg;
 
-reg rst_n, phy_clk, fifo_dv;
-reg [7:0] fifo_din;
+// clock
+logic clk_125m;
+initial clk_125m = 0;
+always #1 begin
+	clk_125m = ~clk_125m;
+end
+default clocking clk @(posedge clk_125m);
+endclocking
+
+logic rst_n, fifo_dv;
+logic [7:0] fifo_din;
 wire gmii_en;
 wire [7:0] gmii_dout;
 hub hub0 (
 		.sys_rst(~rst_n)
-	,	.gmii_gtx_clk(phy_clk)
-	,	.fifo_dv(fifo_dv)
-	,	.fifo_din(fifo_din)
-	,	.gmii_en(gmii_en)
-	,	.gmii_dout(gmii_dout)
+	,	.gmii_gtx_clk(clk_125m)
+	,	.*
 );
 
-// clock
-initial phy_clk = 0;
-always #1 begin
-	phy_clk = ~phy_clk;
-end
 
 int ret, pkt_count;
 initial begin
@@ -46,7 +47,7 @@ initial begin
 		$display("pipe_init: open: ret < 0");
 	end
 
-	nop(5);
+	##5;
 	rst_n <= 1;
 	pkt_count <= max_recvpkt;
 	while(1) begin
@@ -58,27 +59,18 @@ initial begin
 		end
 	end
 
-	nop(10);
+	##10;
 	pipe_release();
 	$finish;
 end
 
 
 /*
- * nop
- */
-task nop(input int n);
-	for (int i = 0; i < n; i++) begin
-		@(posedge phy_clk);
-	end
-endtask
-
-/*
  * gmii_write
  * @data
  */
 task gmii_write(input byte data);
-	@(posedge phy_clk) begin
+	@(posedge clk_125m) begin
 		fifo_dv <= 1'b1;
 		fifo_din <= data;
 	end
@@ -89,7 +81,7 @@ endtask
  */
 task gmii_preamble;
 	for (int i = 1; i <= nPreamble; i++) begin
-		@(posedge phy_clk) begin
+		@(posedge clk_125m) begin
 			fifo_dv <= 1'b1;
 			if (i != nPreamble) begin
 				fifo_din <= 8'h55;
@@ -105,7 +97,7 @@ endtask
  */
 task gmii_ifg;
 	for (int i = 0; i < nIFG; i++) begin
-		@(posedge phy_clk) begin
+		@(posedge clk_125m) begin
 			fifo_dv <= 1'b0;
 			fifo_din <= 8'h0;
 		end
