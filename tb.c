@@ -18,7 +18,7 @@ extern void gmii_write(char);
 extern void gmii_preamble(void);
 extern void gmii_ifg(void);
 
-int pipe_fd;
+int rxpipe_fd, txpipe_fd;
 
 int pipe_init(void)
 {
@@ -26,20 +26,31 @@ int pipe_init(void)
 
 	unlink(RXPIPE_NAME);
 	mkfifo(RXPIPE_NAME, 0666);
-
-	pipe_fd = open(RXPIPE_NAME, O_RDONLY | O_NONBLOCK);
-	if (pipe_fd < 0) {
+	rxpipe_fd = open(RXPIPE_NAME, O_RDONLY | O_NONBLOCK);
+	if (rxpipe_fd < 0) {
 		perror("open");
 		ret = -1;
 	}
+
+	unlink(TXPIPE_NAME);
+	mkfifo(TXPIPE_NAME, 0666);
+#if 0
+	rxpipe_fd = open(TXPIPE_NAME, O_WRONLY | O_NONBLOCK);
+	if (txpipe_fd < 0) {
+		perror("open");
+		ret = -1;
+	}
+#endif
 
 	return ret;
 }
 
 void pipe_release(void)
 {
-	close(pipe_fd);
+	close(rxpipe_fd);
 	unlink(RXPIPE_NAME);
+	close(txpipe_fd);
+	unlink(TXPIPE_NAME);
 }
 
 int tap2gmii(int *ret)
@@ -49,7 +60,7 @@ int tap2gmii(int *ret)
 	int cnt, i, frame_len, pos;
 	char tmp_pkt[BUF_MAX] = {0};
 
-	cnt = read(pipe_fd, buf, sizeof(buf));
+	cnt = read(rxpipe_fd, buf, sizeof(buf));
 	if (cnt < 0 && errno != EAGAIN) {
 		perror("read");
 		*ret = -1;

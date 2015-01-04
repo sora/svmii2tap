@@ -23,6 +23,7 @@
 #define BUF_MAX          9400
 
 #define RXPIPE_NAME      "/tmp/rx0.pipe"
+#define TXPIPE_NAME      "/tmp/tx0.pipe"
 
 
 /*
@@ -60,7 +61,7 @@ int tap_init(char *dev)
 /*
  * pktout
  */
-inline int pktout(int pipe_fd, const unsigned char *pkt, unsigned length)
+inline int pktout(int rxpipe_fd, const unsigned char *pkt, unsigned length)
 {
 	int i, olen;
 	char obuf[BUF_MAX_ASCII];
@@ -76,7 +77,7 @@ inline int pktout(int pipe_fd, const unsigned char *pkt, unsigned length)
 	}
 	strcat(obuf, "\n");
 
-	return write(pipe_fd, obuf, strlen(obuf));
+	return write(rxpipe_fd, obuf, strlen(obuf));
 }
 
 
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
 {
 	char dev[IFNAMSIZ];
 	unsigned char buf[BUF_MAX_ASCII*2];
-	int tap_fd, fd4, cnt, pipe_fd, ret;
+	int tap_fd, fd4, cnt, rxpipe_fd, txpipe_fd, maxfd, ret, ret2;
 	fd_set fdset;
 	struct ifreq ifr;
 	struct in6_rtmsg rt;
@@ -155,25 +156,37 @@ int main(int argc, char **argv)
 	}
 	strcpy(dev, argv[1]);
 
+	// wait for the start of the testbench process
+	for (;;) {
+		ret = stat(RXPIPE_NAME, &st);
+		ret2 = stat(TXPIPE_NAME, &st);
+		if (ret == 0 && ret2 == 0) {
+			break;
+		}
+		sleep(1);
+	}
+	printf("detected pipe files\n");
+
 	tap_fd = tap_init(dev);
 	if (tap_fd < 0) {
 		perror("tap_fd");
 		return 1;
 	}
+	maxfd = tap_fd;
 
-	// wait for the start of the testbench process
-	for (;;) {
-		ret = stat(RXPIPE_NAME, &st);
-		if (ret == 0) {
-			break;
-		}
-		sleep(1);
+	rxpipe_fd = open(RXPIPE_NAME, O_WRONLY);
+	if (rxpipe_fd < 0) {
+		perror("rxpipe_fd");
+		return 1;
 	}
 
-	pipe_fd = open(RXPIPE_NAME, O_RDWR);
-	if (pipe_fd < 0) {
-		perror("pipe_fd");
+	txpipe_fd = open(TXPIPE_NAME, O_RDONLY | O_NONBLOCK);
+	if (txpipe_fd < 0) {
+		perror("txpipe_fd");
 		return 1;
+	}
+	if (txpipe_fd > maxfd) {
+		maxfd = txpipe_fd;
 	}
 
 	/* ifup */
@@ -205,13 +218,11 @@ int main(int argc, char **argv)
 	}
 
 	while(1) {
-		int ret;
-
 		FD_ZERO(&fdset);
-		FD_SET(pipe_fd, &fdset);
+		FD_SET(txpipe_fd, &fdset);
 		FD_SET(tap_fd, &fdset);
 
-		ret = select(tap_fd + 1, &fdset, NULL, NULL, NULL);
+		ret = select(maxfd + 1, &fdset, NULL, NULL, NULL);
 		if (ret < 0) {
 			perror("select");
 			return 1;
@@ -224,15 +235,15 @@ int main(int argc, char **argv)
 				perror("read");
 			}
 
-			ret = pktout(pipe_fd, buf, ret);
+			ret = pktout(rxpipe_fd, buf, ret);
 			if (ret < 0) {
 				perror("pktout()");
 			}
 		}
 
 		// pktin
-		if (FD_ISSET(pipe_fd, &fdset)) {
-			cnt = read(pipe_fd, buf, sizeof(buf));
+		if (FD_ISSET(txpipe_fd, &fdset)) {
+			cnt = read(txpipe_fd, buf, sizeof(buf));
 			if (ret < 0) {
 				perror("read");
 			}
@@ -244,7 +255,8 @@ int main(int argc, char **argv)
 		}
 	}
 	close(tap_fd);
-	close(pipe_fd);
+	close(rxpipe_fd);
+	close(txpipe_fd);
 
 	return 0;
 }
