@@ -1,5 +1,6 @@
 TARGET_TAP = tapdev
 TARGET_TB = tb
+TARGET_DPI = tb_svdpi
 TARGET_DUT = dut/hub.v
 BUILD_DIR = work
 
@@ -31,11 +32,11 @@ simlint: simlib
 	$(LINT) $(TARGET_TB).sv $(TARGET_DUT)
 
 dpic: simlog
-	$(CC) -m32 -c -I$(MODELSIM_HOME)/include $(TARGET_TB).c
-	$(CC) -m32 -shared -fPIC -o svdpi.so $(TARGET_TB).o
+	$(CC) -m32 -c -I$(MODELSIM_HOME)/include $(TARGET_DPI).c
+	$(CC) -m32 -shared -fPIC -o $(TARGET_DPI).so $(TARGET_DPI).o
 
 vsim:
-	$(VSIM) -c -sv_lib svdpi -do "run -all; quit" $(TARGET_TB)
+	$(VSIM) -c -sv_lib $(TARGET_DPI) -do "run -all; quit" $(TARGET_TB)
 
 tap:
 	sudo $(TARGET_TAP) pipe0
