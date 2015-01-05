@@ -69,3 +69,8 @@ Todo
 * XGMII (10G)
 * Ethernet FCS
 
+License
+-------
+
+MIT
+
