@@ -41,8 +41,16 @@ svMII2tap is a virtual network device for Systemverilog testbench for FPGA-based
 Features
 --------
 
-Install
--------
+QuickStart
+----------
+
+**Data flow**
+
+```bash
+Linux -> tapdev -> testbench -> dut/hub.v -> testbench -> tapdev -> Linux -> tcpdump
+```
+
+**Install**
 
 ```bash
 $ git clone https://github.com/sora/svmii2tap
@@ -54,6 +62,14 @@ $ sudo tcpdump -i phy0 -w phy0.pcap &
 $ make sim
 $ gtkwave wave.vcd
 ```
+
+**wave.vcd**
+
+![gtkwave.png](https://raw.githubusercontent.com/wiki/sora/svmii2tap/images/gtkwave.png)
+
+**phy0.pcap**
+
+![tcpdump.png](https://raw.githubusercontent.com/wiki/sora/svmii2tap/images/tcpdump.png)
 
 Requirements
 ------------
