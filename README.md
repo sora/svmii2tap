@@ -48,7 +48,9 @@ Install
 $ git clone https://github.com/sora/svmii2tap
 $ cd svmii2tap
 $ make
-$ sudo ./tapdev eth0 &
+$ sudo ./tapdev phy0 &
+$ sudo ifconfig phy0 inet 10.0.0.100 netmask 255.255.255.0 up
+$ sudo tcpdump -i phy0 -w phy0.pcap &
 $ make sim
 $ gtkwave wave.vcd
 ```
@@ -65,9 +67,9 @@ Requirements
 Todo
 ----
 
-* TX
 * XGMII (10G)
-* Ethernet FCS
+* Multiple ports
+* Ethernet FCS check
 
 License
 -------
