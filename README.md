@@ -47,8 +47,8 @@ QuickStart
 **Data flow**
 
 ```bash
-# wall-clock time----->> simulated time---------------------->> wall-clock time-------------->>
-Linux -> tapdev(phy0) -> testbench -> dut/hub.v -> testbench -> tapdev(phy0) -> Lnux -> tcpdump
+# wall-clock time----->> simulated time---------------------->> wall-clock time--------------->>
+Linux -> tapdev(phy0) -> testbench -> dut/hub.v -> testbench -> tapdev(phy0) -> Linux -> tcpdump
 ```
 
 **Install**
