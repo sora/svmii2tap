@@ -15,10 +15,10 @@ always @(posedge gmii_gtx_clk) begin
 		gmii_dout <= 8'b0;
 	end else begin
 		gmii_en <= 1'b0;
-		gmii_dout <= fifo_din;
 		if (fifo_dv) begin
 			gmii_en <= 1'b1;
 		end
+		gmii_dout <= fifo_din;
 	end
 end
 endmodule

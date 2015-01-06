@@ -1,7 +1,7 @@
 TARGET_TAP = tapdev
 TARGET_TB = tb
 TARGET_DPI = tb_svdpi
-TARGET_DUT = dut/hub.v
+TARGET_DUT = dut/loopback.v
 BUILD_DIR = work
 
 MODELSIM_HOME = /opt/altera/14.1/modelsim_ase
