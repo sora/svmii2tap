@@ -127,6 +127,9 @@ static inline int gmii2pipe(unsigned int frame_len)
 	int i, olen;
 	char obuf[BUF_MAX_ASCII];
 
+	// drop ethernet FCS
+	frame_len -= 4;
+
 	sprintf(obuf, "%02X%02X%02X%02X%02X%02X %02X%02X%02X%02X%02X%02X %02X%02X",
 		rx_tmp_pkt[0x00], rx_tmp_pkt[0x01], rx_tmp_pkt[0x02],   // dst mac address
 		rx_tmp_pkt[0x03], rx_tmp_pkt[0x04], rx_tmp_pkt[0x05],
