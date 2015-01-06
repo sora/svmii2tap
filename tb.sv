@@ -10,6 +10,7 @@ module tb #(
 import "DPI-C" context function int pipe_init();
 import "DPI-C" context task pipe_release();
 import "DPI-C" context task tap2gmii(output int ret);
+import "DPI-C" context function int gmii_read(int gmii_en, byte gmii_dout);
 export "DPI-C" task gmii_write;
 export "DPI-C" task gmii_preamble;
 export "DPI-C" task gmii_ifg;
@@ -33,7 +34,6 @@ hub hub0 (
 	,	.*
 );
 
-
 int ret, pkt_count;
 initial begin
 	$dumpfile("wave.vcd");
@@ -48,8 +48,8 @@ initial begin
 	end
 
 	##5;
-	rst_n <= 1;
-	pkt_count <= max_recvpkt;
+	rst_n = 1;
+	pkt_count = max_recvpkt;
 	while(1) begin
 		tap2gmii(ret);
 		if (ret == 1) begin
@@ -62,6 +62,18 @@ initial begin
 	##10;
 	pipe_release();
 	$finish;
+end
+
+/*
+ * gmii_read
+ */
+reg ret_reg;
+always @(posedge clk_125m) begin
+	if (!rst_n) begin
+		ret_reg <= 0;
+	end else begin
+		ret_reg <= gmii_read(gmii_en, gmii_dout);
+	end
 end
 
 

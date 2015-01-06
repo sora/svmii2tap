@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 {
 	char dev[IFNAMSIZ];
 	unsigned char buf[BUF_MAX_ASCII*2];
-	int tap_fd, fd4, cnt, rxpipe_fd, txpipe_fd, maxfd, ret, ret2;
+	int tap_fd, fd4, cnt, rxpipe_fd, txpipe_fd, maxfd, ret;
 	fd_set fdset;
 	struct ifreq ifr;
 	struct in6_rtmsg rt;
@@ -156,38 +156,37 @@ int main(int argc, char **argv)
 	}
 	strcpy(dev, argv[1]);
 
-	// wait for the start of the testbench process
 	for (;;) {
 		ret = stat(RXPIPE_NAME, &st);
-		ret2 = stat(TXPIPE_NAME, &st);
-		if (ret == 0 && ret2 == 0) {
+		if (!ret) {
 			break;
 		}
 		sleep(1);
 	}
-	printf("detected pipe files\n");
+
+	rxpipe_fd = open(RXPIPE_NAME, O_RDWR);
+	if (rxpipe_fd < 0) {
+		perror("rxpipe_fd");
+		return 1;
+	}
+	printf("Detected rxpipe file\n");
+
+	txpipe_fd = open(TXPIPE_NAME, O_RDWR);
+	if (txpipe_fd < 0) {
+		perror("txpipe_fd");
+		return 1;
+	}
+	maxfd = txpipe_fd;
 
 	tap_fd = tap_init(dev);
 	if (tap_fd < 0) {
 		perror("tap_fd");
 		return 1;
 	}
-	maxfd = tap_fd;
-
-	rxpipe_fd = open(RXPIPE_NAME, O_WRONLY);
-	if (rxpipe_fd < 0) {
-		perror("rxpipe_fd");
-		return 1;
+	if (tap_fd > maxfd) {
+		maxfd = tap_fd;
 	}
 
-	txpipe_fd = open(TXPIPE_NAME, O_RDONLY | O_NONBLOCK);
-	if (txpipe_fd < 0) {
-		perror("txpipe_fd");
-		return 1;
-	}
-	if (txpipe_fd > maxfd) {
-		maxfd = txpipe_fd;
-	}
 
 	/* ifup */
 	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
