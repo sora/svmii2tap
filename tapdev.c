@@ -156,6 +156,8 @@ int main(int argc, char **argv)
 	}
 	strcpy(dev, argv[1]);
 
+	unlink(RXPIPE_NAME);
+	unlink(TXPIPE_NAME);
 	for (;;) {
 		ret = stat(RXPIPE_NAME, &st);
 		if (!ret) {

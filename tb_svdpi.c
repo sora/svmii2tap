@@ -122,7 +122,7 @@ out:
 }
 
 static unsigned char rx_tmp_pkt[BUF_MAX] = {0};
-static inline void gmii2pipe(unsigned int frame_len)
+static inline int gmii2pipe(unsigned int frame_len)
 {
 	int i, olen;
 	char obuf[BUF_MAX_ASCII];
@@ -142,13 +142,15 @@ static inline void gmii2pipe(unsigned int frame_len)
 
 	//printf("Data: %s\n", obuf);
 
-	write(txpipe_fd, obuf, strlen(obuf));
+	return write(txpipe_fd, obuf, strlen(obuf));
 }
 
 static unsigned int rx_frame_len = 0;
-static enum RxState { IDLE, DATA } rx_state = IDLE;
+static enum RxState { IDLE, DATA } rx_state;
 int gmii_read(const int gmii_en, const unsigned char gmii_dout)
 {
+	int ret;
+
 	if (gmii_en == 0 && rx_state == IDLE) {
 		goto out;
 	}
@@ -160,10 +162,12 @@ int gmii_read(const int gmii_en, const unsigned char gmii_dout)
 			}
 			break;
 		case DATA:
-			if (gmii_en == 0) {
-				printf("moge: %d\n", rx_state);
+			if (!gmii_en) {
 				// emit a packet
-				gmii2pipe(rx_frame_len);
+				ret = gmii2pipe(rx_frame_len);
+				if (ret < 0) {
+					perror("gmii2pipe");
+				}
 
 				// termination
 				rx_state = IDLE;
