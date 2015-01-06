@@ -19,6 +19,8 @@
 #include <linux/if_tun.h>
 #include <linux/if_ether.h>
 
+#include <time.h>
+
 #define BUF_MAX_ASCII    16000
 #define BUF_MAX          9400
 
@@ -149,6 +151,7 @@ int main(int argc, char **argv)
 	struct ifreq ifr;
 	struct in6_rtmsg rt;
 	struct stat st;
+	struct timeval timeout = { 5, 0 };
 
 	if (argc < 2) {
 		fprintf(stderr, "Usage:%s {devicename}\n", argv[0]);
@@ -223,7 +226,7 @@ int main(int argc, char **argv)
 		FD_SET(txpipe_fd, &fdset);
 		FD_SET(tap_fd, &fdset);
 
-		ret = select(maxfd + 1, &fdset, NULL, NULL, NULL);
+		ret = select(maxfd + 1, &fdset, NULL, NULL, &timeout);
 		if (ret < 0) {
 			perror("select");
 			return 1;
