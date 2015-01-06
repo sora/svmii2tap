@@ -2,7 +2,7 @@
 `timescale 1ns / 1ns
 
 module tb #(
-	parameter max_recvpkt = 3,
+	parameter max_recvpkt = 10,
 	parameter nPreamble = 8,
 	parameter nIFG = 12
 )();
